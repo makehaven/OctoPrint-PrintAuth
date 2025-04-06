@@ -1,0 +1,2 @@
+authplugin
+octoprint_printauth

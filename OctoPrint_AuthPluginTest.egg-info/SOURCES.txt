@@ -1,0 +1,15 @@
+MANIFEST.in
+README.md
+setup.py
+OctoPrint_AuthPluginTest.egg-info/PKG-INFO
+OctoPrint_AuthPluginTest.egg-info/SOURCES.txt
+OctoPrint_AuthPluginTest.egg-info/dependency_links.txt
+OctoPrint_AuthPluginTest.egg-info/entry_points.txt
+OctoPrint_AuthPluginTest.egg-info/requires.txt
+OctoPrint_AuthPluginTest.egg-info/top_level.txt
+authplugin/__init__.py
+authplugin/static/css/printauth.css
+authplugin/static/js/printauth.js
+authplugin/templates/printauth_settings.jinja2
+octoprint_printauth/__init__.py
+octoprint_printauth/plugin.py

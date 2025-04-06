@@ -1,44 +1,31 @@
-# OctoPrint-PrintAuth
-Plugin for Octoprint to authenticate makerspace member 
-
 # OctoPrint-PrintAuth Plugin
+
+*Plugin for OctoPrint to authenticate makerspace members before printing.*
 
 ## Project Goal
 
 This plugin aims to integrate with OctoPrint to require email authentication before starting a print job. It is intended to interact with the MakeHaven user/API system (details TBD in full implementation).
 
-## Current Status (As of 2025-04-05)
+## Current Status (As of 2025-04-06)
 
-**Blocked:** The plugin currently fails to load within OctoPrint due to a persistent `ImportError`, even after extensive troubleshooting. This prevents the plugin from appearing in the UI and consequently stops the JavaScript assets (`printauth.js`) from loading or executing.
+**Working:** The plugin now successfully loads in OctoPrint (tested on v1.10.3, Python 3.11.x). The core loading `ImportError` has been resolved. Basic JavaScript assets (`printauth.js`) are being served and executed correctly in the browser, allowing frontend development to proceed. The current state uses a simplified version of the plugin logic for testing purposes.
 
-### The Problem
+## Key Fix for Loading Issue
 
-After installation (either via `sdist` ZIP or `pip install -e .`), OctoPrint fails during startup with the following error in `octoprint.log`:
+The persistent `ImportError: No module named ...` during plugin load was resolved by restructuring the plugin to match patterns seen in other working OctoPrint plugins:
 
-ERROR - Could not locate plugin print_auth_plugin
-Traceback (most recent call last):
-  File ".../octoprint/plugin/core.py", line 1211, in _import_plugin_from_module
-    location, spec = _find_module(module_name)
-  File ".../octoprint/plugin/core.py", line 45, in _find_module
-    spec = imp.find_module(name)  # <-- Note: Uses deprecated 'imp' module
-  File ".../octoprint/vendor/imp.py", line 288, in find_module
-    raise ImportError(_ERR_MSG.format(name), name=name)
-ImportError: No module named 'octoprint_printauth.plugin'
+1.  **Non-`src` Layout:** The main Python package directory (e.g., `authplugin`) is located directly under the project root, alongside `setup.py`.
+2.  **Class in `__init__.py`:** The main plugin class (`PrintAuthPlugin`) was moved from a separate module (`plugin.py`) into the package's root `__init__.py` file (`authplugin/__init__.py`).
+3.  **`__plugin_load__()` Function:** A `__plugin_load__()` function was added to `authplugin/__init__.py` to handle the instantiation of the plugin class and assign it to the global `__plugin_implementation__`.
+4.  **Entry Point:** The `entry_points` definition in `setup.py` was modified to point directly to the package name (`print_auth_plugin = authplugin`) instead of the `package.module:Class` format.
 
-*(Note: The module name was `'octoprint_printauth.printauth'` before renaming tests).*
+This structure appears to be more compatible with OctoPrint's plugin loader, especially when using editable installs or potentially on newer Python versions.
 
-This error occurs despite the following conditions being met:
-* The necessary files (`__init__.py`, `plugin.py` [formerly `printauth.py`]) exist in the correct installed location (`.../site-packages/octoprint_printauth/` or linked via editable install).
-* The Python `sys.path` correctly includes the path to the plugin source for editable installs.
-* A direct import (`import octoprint_printauth.plugin`) **succeeds** in a plain Python interpreter session within the same activated virtual environment.
+## Development Environment Setup (Working - Python 3.11)
 
-The issue seems specific to OctoPrint 1.10.3's plugin loading mechanism, possibly interacting with Python 3.11/3.12 or the system environment.
+These instructions reflect the setup confirmed to work during troubleshooting.
 
-## Development Environment Setup (Linux/Ubuntu)
-
-These instructions reflect the setup used during troubleshooting, targeting Python 3.11.
-
-1.  **Install Python 3.11 (if needed, using deadsnakes PPA):**
+1.  **Install Python 3.11 (if needed, using deadsnakes PPA on Ubuntu/Debian):**
     ```bash
     sudo apt update
     sudo apt install software-properties-common -y
@@ -49,15 +36,12 @@ These instructions reflect the setup used during troubleshooting, targeting Pyth
     ```
 
 2.  **Create Project Structure (Example):**
-    ```bash
-    # Example parent directory for the venv
-    mkdir -p ~/dev/octoprint_dev
-    cd ~/dev/octoprint_dev
-    # Venv will be created inside this directory
-    ```
+    * Clone this repository (e.g., into `~/dev/OctoPrint-PrintAuth`).
+    * Create a separate directory for the virtual environment (e.g., `~/dev/octoprint_venv`).
 
 3.  **Create and Activate Virtual Environment:**
     ```bash
+    # cd ~/dev/octoprint_venv # Or preferred location
     python3.11 -m venv ./venv
     source ./venv/bin/activate
     # Your prompt should now start with (venv)
@@ -73,43 +57,37 @@ These instructions reflect the setup used during troubleshooting, targeting Pyth
     pip install octoprint
     ```
 
-6.  **Clone/Place Plugin Source Code:**
-    * Ensure your plugin source code (e.g., `OctoPrint-PrintAuth` directory containing `setup.py` and the `octoprint_printauth` package directory) is accessible.
-    * Example location assumed below: `/home/jrlogan/.octoprint/plugins/OctoPrint-PrintAuth/`
-    * *(Current state uses non-`src` layout and `plugin.py`)*
+6.  **Install Plugin in Editable Mode:**
+    * Navigate to the cloned plugin source directory:
+        ```bash
+        cd ~/dev/OctoPrint-PrintAuth # Or wherever you cloned it
+        ```
+    * Install using `-e`:
+        ```bash
+        # Make sure venv is active
+        pip install -e .
+        ```
+    * *(The current structure uses a non-`src` layout, package name `authplugin`, and main class in `authplugin/__init__.py`)*
 
-7.  **Install Plugin in Editable Mode:**
-    ```bash
-    cd /home/jrlogan/.octoprint/plugins/OctoPrint-PrintAuth/
-    pip install -e .
-    ```
-
-8.  **Run OctoPrint:**
+7.  **Run OctoPrint:**
     ```bash
     # Make sure venv is active
-    # Delete old log for clean testing: rm ~/.octoprint/logs/octoprint.log
     octoprint serve
     ```
-    Access via `http://127.0.0.1:5000`. Check `~/.octoprint/logs/octoprint.log` for errors.
+    Access via `http://127.0.0.1:5000`. Check `~/.octoprint/logs/octoprint.log` for errors. The plugin should load, appear in Plugin Manager, and serve `js/printauth.js`.
 
-## Troubleshooting Summary (Things Tried - Failed)
+## Brief Troubleshooting History
 
-The `ImportError` persisted despite trying the following:
-* Verifying file structure (`__init__.py`, module file, static assets).
-* Using standard install (`sdist` generated ZIP uploaded via UI).
-* Using editable install (`pip install -e .`).
-* Using a `src` layout vs. a non-`src` layout in the project structure.
-* Renaming the main plugin module file (`printauth.py` -> `plugin.py`) and updating `setup.py`.
-* Verifying direct Python import works in the venv (`import octoprint_printauth.plugin`).
-* Verifying `sys.path` includes the correct source path during editable installs.
-* Completely recreating the virtual environment from scratch.
-* Testing with both Python 3.12.3 and Python 3.11.x.
-* Using a simplified version of the plugin code containing only minimal boilerplate and `AssetPlugin` requirements.
+Initial attempts faced a persistent `ImportError` during plugin load, preventing the plugin and its JS assets from loading. This occurred despite verifying file structure, using different install methods (`sdist`, editable), testing different project layouts (`src` vs non-`src`), renaming modules, recreating the venv, and testing on Python 3.12/3.11. Direct Python imports worked, indicating an issue specific to OctoPrint's loading context. The issue was resolved by adopting the structure described in "Key Fix for Loading Issue".
 
-## Next Steps (When Resuming)
+## Next Steps (Development)
 
-1.  **Check for OctoPrint Updates/Bug Reports:** Look at the OctoPrint GitHub issues and community forums for reports similar to `ImportError` with `imp.find_module` on Python 3.11/3.12, or for fixes in newer OctoPrint releases (beyond 1.10.3).
-2.  **Report the Bug:** If no existing report covers this, consider submitting one with the detailed information gathered.
-3.  **Try Different Versions:** Test with Python 3.10 or potentially OctoPrint 1.11+ (if available) or development branches.
-4.  **Review Full Code:** Re-examine the original, non-simplified plugin code for any less obvious import issues or dependencies that might interfere, although the error persisting with minimal code makes this less likely to be the root cause.
-5.  **Consider `pyproject.toml`:** Modernize the packaging away from `setup.py` by using a `pyproject.toml` file, although this is unlikely to fix the runtime `ImportError` seen here.
+1.  Restore the original, full functionality to the `PrintAuthPlugin` class within `authplugin/__init__.py`.
+2.  Add back necessary imports (e.g., `requests`, `flask`).
+3.  Implement the frontend JavaScript logic in `authplugin/static/js/printauth.js` to handle user interaction and communication with the backend.
+4.  Implement the backend API endpoint (`on_api_command`) to handle authentication requests.
+5.  Implement the event handler (`on_event`) to trigger the authentication prompt.
+6.  Add and configure necessary settings (`get_settings_defaults`, `templates/costestimation_settings.jinja2`).
+7.  Test all features thoroughly.
+8.  Finalize package name, plugin name, versioning.
+9.  Consider packaging for distribution (`sdist`, `wheel`).

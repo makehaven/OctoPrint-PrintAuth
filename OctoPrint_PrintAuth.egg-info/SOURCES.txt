@@ -7,7 +7,6 @@ OctoPrint_PrintAuth.egg-info/entry_points.txt
 OctoPrint_PrintAuth.egg-info/requires.txt
 OctoPrint_PrintAuth.egg-info/top_level.txt
 octoprint_printauth/__init__.py
-octoprint_printauth/plugin.py
 octoprint_printauth/static/css/printauth.css
 octoprint_printauth/static/js/printauth.js
 octoprint_printauth/templates/printauth_settings.jinja2

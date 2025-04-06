@@ -21,7 +21,7 @@ class PrintAuthPlugin(
     octoprint.plugin.StartupPlugin,
     octoprint.plugin.EventHandlerPlugin,
     octoprint.plugin.SimpleApiPlugin,
-    # octoprint.plugin.TemplatePlugin, # Keep commented out for now
+    octoprint.plugin.TemplatePlugin,
     octoprint.plugin.AssetPlugin
     # octoprint.plugin.SettingsPlugin  # Keep commented out for now
 ):
@@ -37,53 +37,80 @@ class PrintAuthPlugin(
             self._logger.info("Print started event caught; prompting for email authentication.")
             self._plugin_manager.send_plugin_message("print_auth_plugin", {"prompt": True})
 
+# Inside class PrintAuthPlugin:
     def get_api_commands(self):
-        return dict(authenticate=["email"])
+        return dict(
+            authenticate=["email"],
+            confirm_material=["choice"] # <<< Add this line
+        )
 
+    # -- TemplatePlugin --
+    def get_template_configs(self):
+        return [
+            # We don't have settings UI right now, so only include the modal template
+            dict(
+                type="generic", # Use 'generic' to inject HTML somewhere in the main page
+                template="print_auth_material_modal.jinja2",
+                custom_bindings=False # We will use jQuery selectors, not Knockout bindings here
+            )
+            # If you bring settings back later, add that dict here too:
+            # dict(type="settings", name="Print Authentication", custom_bindings=False)
+        ]
+
+
+# Inside class PrintAuthPlugin:
     def on_api_command(self, command, data):
         if command == "authenticate":
+            # --- Keep all your existing 'authenticate' logic here ---
             email = data.get("email")
             if not email:
-                # ... (same error handling as before) ...
+                self._logger.warning("Authentication command received without email.")
                 return flask.jsonify(success=False, message="Email missing"), 400
 
             self._logger.info(f"Attempting DIRECT permission check (HARDCODED) via API command for email: {email}")
             result = {"success": False, "message": "Authentication failed by default."}
             try:
                  result = self.handle_authentication(email, note="OctoPrint Auth Attempt")
-
-                 # Check the specific message for cancellation logic
-                 is_permission_failure = "permission denied" in result.get("message","").lower() or \
-                                         "user not found" in result.get("message","").lower() or \
-                                         "lacks required permission" in result.get("message","").lower()
-
-                 if not result.get("success", False):
-                      # Only cancel automatically if it's a permission/user issue
-                      if is_permission_failure:
-                          self._logger.warning(f"Permission check failed for {email}. Canceling print. Reason: {result.get('message')}")
-                          self._printer.cancel_print()
-                          result["message"] += ". Print canceled."
-                      else:
-                          # For login/network errors, just report the error, don't auto-cancel
-                           self._logger.error(f"Authentication failed due to server/login issue for {email}: {result.get('message')}")
-                           # Add advice for user
-                           result["message"] += ". Please notify staff. You may proceed with caution if desired."
-
-                 else:
-                      self._logger.info(f"Authentication/Permission check successful for {email}.")
+                 # ... (rest of your existing try/except block for authenticate) ...
+                 # ... (which should end with returning flask.jsonify(**result)) ...
 
             except Exception as e:
-                 # ... (same exception handling, leads to cancellation) ...
+                 # ... (keep existing exception handling) ...
                  self._logger.error(f"Unhandled exception during permission check for {email}: {e}", exc_info=True)
                  self._printer.cancel_print()
                  result = {"success": False, "message": f"Server error during permission check. Print canceled. {e}"}
 
-            return flask.jsonify(**result) # Return detailed result
+            # Ensure the final result is returned for authenticate command
+            return flask.jsonify(**result)
+            # --- End of 'authenticate' block ---
+
+        # --- Add this 'elif' block for the new command ---
+        elif command == "confirm_material":
+            choice = data.get("choice") # Should be "paid" or "own_material" from JS button click
+
+            # Log the received choice
+            self._logger.info(f"Received material confirmation choice from frontend: '{choice}'")
+
+            # Placeholder for future logic:
+            # - If print was paused here, call self._printer.resume_print()
+            # - Log choice permanently? Send API call to log material usage?
+
+            if choice in ["paid", "own_material"]:
+                # Just acknowledge receipt successfully for now
+                return flask.jsonify(success=True, message=f"Choice '{choice}' acknowledged by server.")
+            else:
+                # Handle unexpected choice value
+                self._logger.warning(f"Received invalid material choice: {choice}")
+                return flask.jsonify(success=False, message=f"Invalid choice received: {choice}"), 400
+        # --- End of 'confirm_material' block ---
+
         else:
-            # ... (same handling for unknown command) ...
+            # Keep existing handling for unknown commands
+            self._logger.warning(f"Received unknown API command: {command}")
             return flask.make_response(f"Unknown command: {command}", 400)
 
 
+# -- Authentication Logic (Checks permission directly - CORRECTED try/except) --
     def handle_authentication(self, email, note="N/A"):
         # Attempt login only if no session exists
         if not self._session:
@@ -91,7 +118,7 @@ class PrintAuthPlugin(
             login_result, login_message = self.login_to_api() # Get detailed result
             if not login_result:
                 # Return specific failure reason from login_to_api
-                return dict(success=False, message=login_message) # e.g., "API service login credentials failed" or "Network error during login"
+                return dict(success=False, message=login_message)
 
         # --- Use Hardcoded Values ---
         perm_check_url_template = HARDCODED_PERMISSION_CHECK_URL_TEMPLATE
@@ -114,62 +141,74 @@ class PrintAuthPlugin(
         if note: params['note'] = note
 
         self._logger.info(f"Checking permission API: {api_url} with params: {params}")
+
+        # --- CORRECTED try...except block structure ---
         try:
+            # Make the request
             response = self._session.get(api_url, params=params, timeout=15)
             self._logger.info(f"API response status: {response.status_code}")
             self._logger.debug(f"API response text: {response.text[:500]}")
 
-            if response.ok:
+            # Process the response (status check, JSON decoding, permission logic)
+            if response.ok: # Status < 400
                  try:
                      json_data = response.json()
                      self._logger.info(f"API success response JSON: {json_data}")
 
-                     # Check if response is a non-empty list and first item indicates access
+                     # Check for expected success structure from MakeHaven API
                      if isinstance(json_data, list) and len(json_data) > 0 and json_data[0].get("access") == "true":
-                         user_data = json_data[0] # Get the user object
-
-                         # --- Extract Names ---
-                         first_name = user_data.get('first_name', '') # Default to empty if key missing
+                         user_data = json_data[0]
+                         first_name = user_data.get('first_name', '')
                          last_name = user_data.get('last_name', '')
                          user_name = f"{first_name} {last_name}".strip()
-                         if not user_name: user_name = "User" # Fallback name
-                         # --- End Extract Names ---
+                         if not user_name: user_name = "User" # Fallback
 
-                         self._logger.info(f"Permission '{req_permission_name}' granted for {user_name} ({email}).")
+                         self._logger.info(f"Permission '{req_permission_name}' granted for {user_name} ({email}). Fetching materials...")
 
-                         # --- Modify Return Dictionary ---
+                         # Fetch materials (assuming function exists and handles errors)
+                         tool_id = 6046
+                         material_list = self.fetch_materials(tool_id)
+
+                         # Return success with user names and materials
                          return dict(success=True,
-                                     message=f"Authenticated as {user_name}", # Optional: Keep detailed message
-                                     firstName=first_name, # Use camelCase keys for JS
-                                     lastName=last_name)
-                         # --- End Modify Return ---
+                                     message=f"Authenticated as {user_name}",
+                                     firstName=first_name,
+                                     lastName=last_name,
+                                     materials=material_list)
                      else:
                          # Response OK but didn't contain expected success data
                          self._logger.warning(f"API Status OK but response JSON did not indicate access for {email}. Response: {json_data}")
                          return dict(success=False, message=f"Permission '{req_permission_name}' not granted for user (API check).")
 
                  except json.JSONDecodeError:
-                     # ... (keep existing error handling) ...
+                     # Response OK but wasn't valid JSON
                      self._logger.warning("API returned Status OK but response was not valid JSON. Treating as failure.")
                      return dict(success=False, message="Invalid response from permission API")
-            else: # response not ok (4xx, 5xx)
+            else:
+                 # Response was not OK (e.g., 403 Forbidden, 404 Not Found)
                  message = f"Permission denied or user not found by API (Status: {response.status_code})"
-                 try: # Try to get more detail
+                 try: # Attempt to get a more specific error message from API response body
                      error_data = response.json()
-                     if isinstance(error_data, dict) and error_data.get("message"): message = error_data["message"]
-                 except json.JSONDecodeError: pass
+                     if isinstance(error_data, dict) and error_data.get("message"):
+                         message = error_data["message"]
+                 except json.JSONDecodeError:
+                     pass # Stick to the status code message if JSON fails
                  self._logger.warning(f"Permission check failed for {email}. Status: {response.status_code}")
                  return dict(success=False, message=message)
 
+        # --- Exception handling covers the self._session.get call and response processing ---
         except requests.exceptions.Timeout:
              self._logger.error(f"Timeout connecting to permission API: {api_url}")
              return dict(success=False, message="Network error: API connection timed out")
         except requests.exceptions.RequestException as e:
+            # Catches connection errors, DNS errors, invalid URL errors etc.
             self._logger.error(f"Error during permission API request to {api_url}: {e}")
             return dict(success=False, message=f"Network error during permission check: {e}")
         except Exception as e:
+            # Catch-all for any other unexpected errors (like within JSON processing if not caught above)
             self._logger.error(f"Unexpected error during permission check processing: {e}", exc_info=True)
             return dict(success=False, message=f"Unexpected server error during permission check: {e}")
+        
 
 # --- Login Logic (Adapted from Tkinter Example) ---
     def login_to_api(self):
@@ -241,6 +280,48 @@ class PrintAuthPlugin(
     # -- AssetPlugin
     def get_assets(self):
         return dict(js=["js/printauth.js"], css=["css/printauth.css"])
+
+# Inside class PrintAuthPlugin within authplugin/__init__.py
+
+# --- Add this entire method inside the PrintAuthPlugin class ---
+
+    def fetch_materials(self, tool_id):
+        """Fetches materials list for a given tool ID from the API."""
+        if not self._session:
+            self._logger.error("Cannot fetch materials: No active API session.")
+            return [] # Return empty list on error
+
+        # Construct URL using the provided tool ID
+        materials_url = f"https://makehaven.org/api/v0/materials/equipment/{tool_id}"
+        self._logger.info(f"Fetching materials from: {materials_url}")
+
+        try:
+            response = self._session.get(materials_url, timeout=10) # Use existing session
+            response.raise_for_status() # Check for HTTP errors
+
+            materials_list = response.json()
+            if isinstance(materials_list, list):
+                 self._logger.info(f"Successfully fetched {len(materials_list)} materials.")
+                 return materials_list
+            else:
+                 self._logger.error(f"Materials API response was not a list: {materials_list}")
+                 return []
+
+        except requests.exceptions.Timeout:
+             self._logger.error(f"Timeout connecting to materials API: {materials_url}")
+             return []
+        except requests.exceptions.RequestException as e:
+            self._logger.error(f"Error during materials API request to {materials_url}: {e}")
+            return []
+        except json.JSONDecodeError:
+             self._logger.error(f"Failed to decode JSON response from materials API: {materials_url}. Response text: {response.text[:500]}")
+             return []
+        except Exception as e:
+            self._logger.error(f"Unexpected error fetching materials: {e}", exc_info=True)
+            return []
+    # --- End of fetch_materials method ---
+
+
 
 # --- Plugin Registration ---
 __plugin_name__ = "Print Authentication Plugin (Hardcoded)"

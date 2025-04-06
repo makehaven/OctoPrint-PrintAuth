@@ -1,0 +1,17 @@
+<div id="printAuthMaterialModal" class="modal hide fade" tabindex="-1" role="dialog" aria-labelledby="printAuthModalLabel" aria-hidden="true">
+    <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
+        <h3 id="printAuthModalLabel">Confirm Material Usage</h3>
+    </div>
+    <div class="modal-body">
+        <p id="printAuthModalWelcome"></p> <p>Please confirm material usage for this print. Select an option below to start.</p>
+        <div id="printAuthMaterialList" style="margin-top: 15px; margin-bottom: 15px; max-height: 200px; overflow-y: auto;">
+            <p><em>Loading materials...</em></p>
+        </div>
+        <p class="muted">If purchasing materials, complete payment via the link/QR code (if available) before clicking "I Paid".</p>
+    </div>
+    <div class="modal-footer">
+         <button id="printAuthBtnOwnMaterial" class="btn" data-choice="own_material">Using Own Material</button>
+        <button id="printAuthBtnPaid" class="btn btn-primary" data-choice="paid">I Paid / Payment Submitted</button>
+         </div>
+</div>

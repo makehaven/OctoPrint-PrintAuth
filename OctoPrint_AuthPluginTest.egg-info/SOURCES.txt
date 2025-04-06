@@ -11,5 +11,3 @@ authplugin/__init__.py
 authplugin/static/css/printauth.css
 authplugin/static/js/printauth.js
 authplugin/templates/printauth_settings.jinja2
-octoprint_printauth/__init__.py
-octoprint_printauth/plugin.py

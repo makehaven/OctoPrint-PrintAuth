@@ -1,2 +1,0 @@
-[octoprint.plugin]
-print_auth_plugin = authplugin

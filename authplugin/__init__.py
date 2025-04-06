@@ -15,7 +15,8 @@ class PrintAuthPlugin(
     octoprint.plugin.EventHandlerPlugin, # Added back for on_event
     octoprint.plugin.SimpleApiPlugin,  # Added back for on_api_command
     octoprint.plugin.TemplatePlugin,   # Added back for get_template_configs
-    octoprint.plugin.AssetPlugin
+    octoprint.plugin.AssetPlugin,
+    octoprint.plugin.SettingsPlugin
 ):
 
     # --- Added back __init__ ---

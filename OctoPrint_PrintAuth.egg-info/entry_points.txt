@@ -1,0 +1,2 @@
+[octoprint.plugin]
+print_auth_plugin = octoprint_printauth.plugin:PrintAuthPlugin

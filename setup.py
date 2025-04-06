@@ -1,23 +1,22 @@
-# Corrected setup.py (No 'src' layout, corrected package_data)
+# Simplified setup.py for hardcoded version
 from setuptools import setup, find_packages
 
 setup(
-    name="OctoPrint-AuthPluginTest", # Changed name slightly to reflect test
+    name="OctoPrint-AuthPluginTest",
     version="1.0.0",
-    packages=find_packages(), # Correct: Finds 'authplugin' now
+    packages=find_packages(), # Finds 'authplugin'
     install_requires=[
         "requests",
-        "flask"
+        "flask" # Still needed by SimpleApiPlugin potentially
     ],
     entry_points={
         "octoprint.plugin": [
-            # Correct: Points to package 'authplugin'
             "print_auth_plugin = authplugin"
         ]
     },
-    # Corrected package_data key VVVVVVVVVV
+    # Keep package_data for static files (JS/CSS)
     package_data={
-        'authplugin': ["static/js/*", "static/css/*", "templates/*"]
+        'authplugin': ["static/js/*", "static/css/*"] # Removed templates/*
     },
-    include_package_data=True, # Keep this to use MANIFEST.in
+    include_package_data=True,
 )

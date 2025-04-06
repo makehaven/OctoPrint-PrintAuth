@@ -1,6 +1,5 @@
-<div id="settings_plugin_print_auth">
-    <h4>API Credentials</h4>
-    <p>Enter the credentials needed to log into the website hosting the API (e.g., makehaven.org).</p>
+<div id="settings_plugin_print_auth"> <h4>API Credentials</h4>
+    <p>Enter the credentials needed to log into the website hosting the API (e.g., makehaven.org). Required for the plugin to check user permissions.</p>
     <form class="form-horizontal">
         <div class="control-group">
             <label class="control-label" for="printAuthLoginUrl">Website Login URL</label>
@@ -23,35 +22,35 @@
     </form>
 
     <hr>
-    <h4>API Configuration</h4>
-    <p>Configure the user lookup API endpoint and required parameters.</p>
+    <h4>API Configuration & Permissions</h4>
+    <p>Configure the permission check API endpoint and required parameters.</p>
      <form class="form-horizontal">
         <div class="control-group">
-            <label class="control-label" for="printAuthUserApiUrl">User API URL Template</label>
+            <label class="control-label" for="printAuthPermCheckUrl">Permission Check URL Template</label>
             <div class="controls">
-                <input type="text" id="printAuthUserApiUrl" class="span9" data-bind="value: settings.plugins.print_auth_plugin.user_api_url, attr: { placeholder: 'e.g., https://makehaven.org/api/v0/email/{email}/user' }">
-                <p class="muted">URL to get user details. Must include <code>{email}</code> placeholder.</p>
+                <input type="text" id="printAuthPermCheckUrl" class="span9" data-bind="value: settings.plugins.print_auth_plugin.permission_check_url_template, attr: { placeholder: 'e.g., https://makehaven.org/api/v0/email/{email}/permission/{permission}' }">
+                <p class="muted">URL to check permission. Must include <code>{email}</code> and <code>{permission}</code> placeholders.</p>
             </div>
         </div>
         <div class="control-group">
-            <label class="control-label" for="printAuthPermissionName">Required Permission Name</label>
+            <label class="control-label" for="printAuthPermissionName">Permission Name to Check</label>
             <div class="controls">
                 <input type="text" id="printAuthPermissionName" class="span6" data-bind="value: settings.plugins.print_auth_plugin.permission_name, attr: { placeholder: 'e.g., 3D Print' }">
-                 <p class="muted">The exact name of the permission the user must have (as returned by the API) to start a print.</p>
+                 <p class="muted">The exact permission name (case-sensitive) to insert into the <code>{permission}</code> placeholder in the URL above.</p>
            </div>
         </div>
         <div class="control-group">
             <label class="control-label" for="printAuthToolName">Tool Name (Source)</label>
             <div class="controls">
                 <input type="text" id="printAuthToolName" class="span6" data-bind="value: settings.plugins.print_auth_plugin.tool_name, attr: { placeholder: 'e.g., Prusa-XL-1' }">
-                <p class="muted">The name identifying this printer sent as the 'source' parameter to the API.</p>
+                <p class="muted">The identifier for this printer sent as the 'source' parameter to the API.</p>
             </div>
         </div>
          <div class="control-group">
             <label class="control-label">API Method Parameter</label>
             <div class="controls">
-                <span class="input-large uneditable-input">octoprint_plugin</span>
-                 <p class="muted">The value sent as the 'method' parameter to the API (hardcoded).</p>
+                <span class="input-large uneditable-input" data-bind="text: settings.plugins.print_auth_plugin.api_method"></span>
+                 <p class="muted">The value sent as the 'method' parameter to the API (hardcoded in plugin).</p>
            </div>
         </div>
     </form>

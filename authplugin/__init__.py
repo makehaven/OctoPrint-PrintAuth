@@ -123,18 +123,33 @@ class PrintAuthPlugin(
                  try:
                      json_data = response.json()
                      self._logger.info(f"API success response JSON: {json_data}")
-                     # **NEW:** Check specifically for the expected success structure from your manual test
-                     # [{"first_name":..., "access":"true", ...}]
+
+                     # Check if response is a non-empty list and first item indicates access
                      if isinstance(json_data, list) and len(json_data) > 0 and json_data[0].get("access") == "true":
-                         user_name = f"{json_data[0].get('first_name','?')} {json_data[0].get('last_name','?')}"
+                         user_data = json_data[0] # Get the user object
+
+                         # --- Extract Names ---
+                         first_name = user_data.get('first_name', '') # Default to empty if key missing
+                         last_name = user_data.get('last_name', '')
+                         user_name = f"{first_name} {last_name}".strip()
+                         if not user_name: user_name = "User" # Fallback name
+                         # --- End Extract Names ---
+
                          self._logger.info(f"Permission '{req_permission_name}' granted for {user_name} ({email}).")
-                         return dict(success=True, message=f"Authenticated as {user_name}")
+
+                         # --- Modify Return Dictionary ---
+                         return dict(success=True,
+                                     message=f"Authenticated as {user_name}", # Optional: Keep detailed message
+                                     firstName=first_name, # Use camelCase keys for JS
+                                     lastName=last_name)
+                         # --- End Modify Return ---
                      else:
                          # Response OK but didn't contain expected success data
                          self._logger.warning(f"API Status OK but response JSON did not indicate access for {email}. Response: {json_data}")
                          return dict(success=False, message=f"Permission '{req_permission_name}' not granted for user (API check).")
 
                  except json.JSONDecodeError:
+                     # ... (keep existing error handling) ...
                      self._logger.warning("API returned Status OK but response was not valid JSON. Treating as failure.")
                      return dict(success=False, message="Invalid response from permission API")
             else: # response not ok (4xx, 5xx)

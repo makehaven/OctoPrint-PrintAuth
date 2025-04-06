@@ -15,9 +15,31 @@ $(function() {
                         data: JSON.stringify({ command: "authenticate", email: email }),
                         success: function(response) {
                             if (response.success) {
-                                alert("Authentication successful.");
+                                // --- Construct Welcome Message ---
+                                var firstName = response.firstName || ''; // Default to empty string if missing
+                                var lastName = response.lastName || '';
+                                var fullName = (firstName + ' ' + lastName).trim();
+                                var welcomeName = fullName || 'User'; // Use "User" if names are blank
+
+                                // Add logging confirmation text
+                                var logMessage = "Print logged for " + welcomeName + ". Starting print.";
+
+                                alert("Welcome " + welcomeName + "!\n" + logMessage);
+                                // --- End Welcome Message ---
+
+                                // Print proceeds automatically as auth succeeded
                             } else {
-                                alert("Authentication failed: " + response.message);
+                                // Differentiated Error Messages (keep as is from previous step)
+                                var message = response.message || "Unknown authentication error.";
+                                if (message.includes("credentials failed")) {
+                                    alert("Authentication Error:\nCould not log into authentication service.\nPlease notify MakeHaven staff.\n\n(Print Canceled? Check server log)");
+                                } else if (message.includes("Network error") || message.includes("timed out")) {
+                                    alert("Network Error:\nCould not contact authentication service.\nPlease check network or notify MakeHaven staff.\n\n(Print Canceled? Check server log)");
+                                } else if (message.includes("Permission denied") || message.includes("not found") || message.includes("lacks required permission") || message.includes("not granted")) {
+                                    alert("Authentication Failed:\n" + message + "\nPlease check email address or contact MakeHaven staff.");
+                                } else {
+                                    alert("Authentication Failed:\n" + message);
+                                }
                             }
                         },
                         error: function() {

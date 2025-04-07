@@ -4,48 +4,45 @@ $(function() {
 
         // --- Helper Function to Show Modal ---
         self.showMaterialModal = function(data) {
-            var firstName = data.firstName || '';
-            var lastName = data.lastName || '';
-            var fullName = (firstName + ' ' + lastName).trim();
-            var welcomeName = fullName || 'User';
-            var materials = data.materials || [];
+            // ... (keep the implementation from the previous step that generates links) ...
+             var firstName = data.firstName || '';
+             var lastName = data.lastName || '';
+             var fullName = (firstName + ' ' + lastName).trim();
+             var welcomeName = fullName || 'User';
+             var materials = data.materials || [];
 
-            // Update Modal Content
-            $("#printAuthModalWelcome").text("Welcome " + welcomeName + "!"); // Set welcome message
+             $("#printAuthModalWelcome").text("Welcome " + welcomeName + "!");
 
-            var materialListDiv = $("#printAuthMaterialList");
-            materialListDiv.empty(); // Clear previous materials
+             var materialListDiv = $("#printAuthMaterialList");
+             materialListDiv.empty();
 
-            if (materials.length > 0) {
-                var listHtml = "<strong>Materials associated with this tool:</strong><ul>";
-                materials.forEach(function(material) {
-                    // Format: Label - Unit - $Cost (Add buy link/QR later if possible)
-                    listHtml += "<li>" +
-                                _.escape(material.label || 'Unknown Material') + " - " +
-                                _.escape(material.unit || '?') + " - $" +
-                                _.escape(material.cost || '?.??') +
-                                "</li>";
-                });
-                listHtml += "</ul>";
-                materialListDiv.html(listHtml);
-            } else {
-                materialListDiv.html("<p><em>No specific materials listed for purchase for this tool.</em></p>");
-            }
+             if (materials.length > 0) {
+                 var listHtml = "<strong>Materials for Purchase:</strong><ul>";
+                 materials.forEach(function(material) {
+                     var label = _.escape(material.label || 'Unknown Material');
+                     var unit = _.escape(material.unit || '?');
+                     var cost = _.escape(material.cost || '?.??');
+                     var purchaseUrl = material.purchase || '#';
+                     var linkTarget = purchaseUrl !== '#' ? ' target="_blank" rel="noopener noreferrer"' : '';
 
-            // Show the modal (make it non-dismissible by clicking outside)
-            $("#printAuthMaterialModal").modal({ backdrop: 'static', keyboard: false });
-        };
+                     listHtml += '<li>' + '<a href="' + purchaseUrl + '"' + linkTarget + '>' +
+                                 label + ' - ' + unit + ' - $' + cost + '</a>' + '</li>';
+                 });
+                 listHtml += "</ul>";
+                 materialListDiv.html(listHtml);
+             } else {
+                 materialListDiv.html("<p><em>No specific materials listed for purchase for this tool. You may use your own.</em></p>");
+             }
+             $("#printAuthMaterialModal").modal({ backdrop: 'static', keyboard: false });
+        }; // End showMaterialModal
 
         // --- Main Message Handler ---
         self.onDataUpdaterPluginMessage = function(plugin, data) {
-            console.log("onDataUpdaterPluginMessage received:", plugin, data); // Keep for debugging
+            console.log("onDataUpdaterPluginMessage received:", plugin, data);
 
             if (plugin === "print_auth_plugin" && data.prompt) {
                 var email = prompt("Please enter your MakeHaven email for authentication:");
                 if (email) {
-                    // Optional: Show "Checking..." notification
-                    // new PNotify({...});
-
                     $.ajax({
                         url: API_BASEURL + "plugin/print_auth_plugin",
                         type: "POST",
@@ -53,89 +50,71 @@ $(function() {
                         contentType: "application/json",
                         data: JSON.stringify({ command: "authenticate", email: email }),
                         success: function(response) {
-                            // Optional: Remove "Checking..." notification
-                            // PNotify.removeAll();
-
                             if (response.success) {
-                                // *** Instead of alert, call the modal function ***
                                 self.showMaterialModal(response);
-                                // Print does NOT proceed yet - waits for modal button click
                             } else {
-                                // Keep the differentiated error messages from before
+                                // Keep differentiated error alerts
                                 var message = response.message || "Unknown authentication error.";
-                                if (message.includes("credentials failed")) {
-                                     alert("Authentication Error:\nCould not log into authentication service.\nPlease notify MakeHaven staff.");
+                                if (message.includes("credentials failed") || message.includes("Plugin settings error")) {
+                                     alert("Configuration Error:\nCould not log into authentication service or plugin settings are incomplete.\nPlease check settings or notify MakeHaven staff.");
                                 } else if (message.includes("Network error") || message.includes("timed out")) {
                                      alert("Network Error:\nCould not contact authentication service.\nPlease check network or notify MakeHaven staff.");
                                 } else if (message.includes("Permission denied") || message.includes("not found") || message.includes("lacks required permission") || message.includes("not granted")) {
-                                     alert("Authentication Failed:\n" + message + "\nPlease check email or contact MakeHaven staff.");
+                                     alert("Authentication Failed:\n" + message + "\nPlease check email address or contact MakeHaven staff.");
                                 } else {
                                      alert("Authentication Failed:\n" + message);
                                 }
-                                // Print was likely cancelled by backend for permission errors
                             }
                         },
                         error: function(jqXHR, textStatus, errorThrown) {
-                            // Optional: Remove "Checking..." notification
-                            // PNotify.removeAll();
                             console.error("AJAX Error (Authenticate):", textStatus, errorThrown, jqXHR.responseText);
                             alert("Error communicating with OctoPrint authentication endpoint. Check browser console and octoprint.log.");
                         }
                     });
                 } else {
                     alert("No email provided. Print canceled.");
-                    // Consider sending a 'cancel' command to backend if needed
                 }
             }
         }; // End of onDataUpdaterPluginMessage
 
         // --- Modal Button Click Handlers ---
-        // Use .off().on() to prevent multiple bindings if ViewModel reloads
+        // Ensure these handlers are correctly placed and select the right buttons
         $("#printAuthBtnOwnMaterial, #printAuthBtnPaid").off('click').on('click', function() {
-            var choice = $(this).data('choice'); // Get 'own_material' or 'paid' from data-choice attribute
+            var choice = $(this).data('choice');
             console.log("Material choice:", choice);
+            $("#printAuthBtnOwnMaterial, #printAuthBtnPaid").prop('disabled', true);
 
-             // Disable buttons while processing
-             $("#printAuthBtnOwnMaterial, #printAuthBtnPaid").prop('disabled', true);
-
-            // Make the SECOND ajax call to confirm material choice
             $.ajax({
-                url: API_BASEURL + "plugin/print_auth_plugin", // Same endpoint, different command
+                url: API_BASEURL + "plugin/print_auth_plugin",
                 type: "POST",
                 dataType: "json",
                 contentType: "application/json",
-                data: JSON.stringify({ command: "confirm_material", choice: choice }), // New command
+                data: JSON.stringify({ command: "confirm_material", choice: choice }),
                 success: function(response) {
-                    $("#printAuthMaterialModal").modal('hide'); // Hide modal on success
+                    $("#printAuthMaterialModal").modal('hide');
+                     $("#printAuthBtnOwnMaterial, #printAuthBtnPaid").prop('disabled', false); // Re-enable on hide
                     if (response.success) {
-                         alert("Confirmation received. Print starting!"); // Simple alert for now
-                         // Use PNotify for better UI later: new PNotify({... type: 'success'})
+                         new PNotify({title: 'Material Confirmed', text: response.message, type: 'success', delay: 5000});
                     } else {
-                         alert("Error confirming material choice: " + response.message);
-                         // Re-enable buttons on error? Or keep modal open? Depends on desired flow.
-                         $("#printAuthBtnOwnMaterial, #printAuthBtnPaid").prop('disabled', false);
+                         new PNotify({title: 'Confirmation Error', text: response.message, type: 'error', delay: 5000});
                     }
                 },
                 error: function(jqXHR, textStatus, errorThrown) {
-                    $("#printAuthMaterialModal").modal('hide'); // Hide modal on error too
+                    $("#printAuthMaterialModal").modal('hide');
+                     $("#printAuthBtnOwnMaterial, #printAuthBtnPaid").prop('disabled', false); // Re-enable on hide/error
                     console.error("AJAX Error (Confirm Material):", textStatus, errorThrown, jqXHR.responseText);
-                    alert("Error sending material confirmation to OctoPrint.");
-                    $("#printAuthBtnOwnMaterial, #printAuthBtnPaid").prop('disabled', false); // Re-enable buttons
+                    new PNotify({title: 'Communication Error', text: 'Error sending material confirmation to OctoPrint.', type: 'error', delay: 5000});
                 }
             });
-        });
-
-        // Optional: Add handler for explicit cancel button if you add one
-        // $("#printAuthBtnCancel").off('click').on('click', function() { ... });
+        }); // End button click handlers
 
     } // End of PrintAuthViewModel
 
-    // Register ViewModel
+    // Register the ViewModel (Simplified Version)
     OCTOPRINT_VIEWMODELS.push([
         PrintAuthViewModel,
-        [], // No dependencies
-        ["#settings_plugin_print_auth"] // Optional: Bind only to settings initially? Might not be needed. Let's remove for now.
-        // []
+        [], // No Dependencies
+        []  // No Specific Elements to bind to
     ]);
     console.log("PrintAuthViewModel registered.");
-});
+}); // End of $(function() {})

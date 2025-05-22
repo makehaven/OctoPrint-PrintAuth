@@ -1,4 +1,4 @@
-<div id="settings_plugin_print_auth"> <h4>API Credentials</h4>
+<div id="settings_plugin_print_auth_plugin"> <h4>API Credentials</h4>
     <p>Enter the credentials needed to log into the website hosting the API (e.g., makehaven.org). Required for the plugin to check user permissions.</p>
     <form class="form-horizontal">
         <div class="control-group">
@@ -46,7 +46,14 @@
                 <p class="muted">The identifier for this printer sent as the 'source' parameter to the API.</p>
             </div>
         </div>
-         <div class="control-group">
+        <div class="control-group">
+            <label class="control-label" for="printAuthMaterialToolId">Material Tool ID</label>
+            <div class="controls">
+                <input type="text" id="printAuthMaterialToolId" class="span3" data-bind="value: settings.plugins.print_auth_plugin.material_tool_id">
+                <p class="muted">The numerical ID of the tool used to fetch the list of associated materials (e.g., 6046).</p>
+            </div>
+        </div>
+        <div class="control-group">
             <label class="control-label">API Method Parameter</label>
             <div class="controls">
                 <span class="input-large uneditable-input" data-bind="text: settings.plugins.print_auth_plugin.api_method"></span>
@@ -54,4 +61,19 @@
            </div>
         </div>
     </form>
+
+    <hr>
+    <h4>Material Prompt</h4>
+     <form class="form-horizontal">
+        <div class="control-group">
+             <div class="controls">
+                 <label class="checkbox">
+                     <input type="checkbox" data-bind="checked: settings.plugins.print_auth_plugin.enable_material_prompt">
+                     Enable Material Confirmation Prompt?
+                 </label>
+                 <span class="help-block">If checked, users will be shown associated materials and asked to confirm payment/usage after successful authentication. If unchecked, only authentication is performed.</span>
+             </div>
+         </div>
+     </form>
+
 </div>

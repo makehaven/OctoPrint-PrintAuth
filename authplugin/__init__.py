@@ -184,6 +184,7 @@ class PrintAuthPlugin(
 
 # --- Plugin Registration ---
 __plugin_name__ = "Print Authentication Plugin" # Changed name back
+__plugin_version__ = "1.0.0"
 __plugin_pythoncompat__ = ">=3.7,<4"
 __plugin_identifier__ = "print_auth_plugin" # Define identifier explicitly here too
 

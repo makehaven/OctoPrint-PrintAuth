@@ -1,2 +1,2 @@
-recursive-include src/octoprint_printauth/static *
-recursive-include src/octoprint_printauth/templates *
+recursive-include authplugin/static *
+recursive-include authplugin/templates *

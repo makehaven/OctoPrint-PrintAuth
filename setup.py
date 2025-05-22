@@ -2,7 +2,7 @@
 from setuptools import setup, find_packages
 
 setup(
-    name="OctoPrint-AuthPluginTest", # Changed name slightly to reflect test
+    name="OctoPrint-PrintAuth", # Changed name slightly to reflect test
     version="1.0.0",
     packages=find_packages(), # Correct: Finds 'authplugin' now
     install_requires=[

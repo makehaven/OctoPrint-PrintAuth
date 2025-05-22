@@ -1,0 +1,78 @@
+<div id="settings_plugin_print_auth_plugin" class="settings_plugin">
+    <div class="row-fluid">
+        <div class="span6">
+            <fieldset>
+                <legend>PrintAuth Plugin Settings</legend>
+
+                <div class="control-group">
+                    <label class="control-label" for="print_auth_login_url">Login URL</label>
+                    <div class="controls">
+                        <input type="text" id="print_auth_login_url" class="input-block-level" data-bind="value: settings.plugins.print_auth_plugin.login_url()">
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label class="control-label" for="print_auth_username">Username</label>
+                    <div class="controls">
+                        <input type="text" id="print_auth_username" class="input-block-level" data-bind="value: settings.plugins.print_auth_plugin.username()">
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label class="control-label" for="print_auth_password">Password</label>
+                    <div class="controls">
+                        <input type="password" id="print_auth_password" class="input-block-level" data-bind="value: settings.plugins.print_auth_plugin.password()">
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label class="control-label" for="print_auth_api_url">API URL</label>
+                    <div class="controls">
+                        <input type="text" id="print_auth_api_url" class="input-block-level" data-bind="value: settings.plugins.print_auth_plugin.api_url()">
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label class="control-label" for="print_auth_permission_id">Permission ID (Optional)</label>
+                    <div class="controls">
+                        <input type="text" id="print_auth_permission_id" class="input-block-level" data-bind="value: settings.plugins.print_auth_plugin.permission_id()" placeholder="e.g., CanPrintOnPrinterX">
+                        <span class="help-block">Specify if a specific permission ID is required by your authentication system.</span>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label class="control-label" for="print_auth_workstation_id">Workstation ID (Optional)</label>
+                    <div class="controls">
+                        <input type="text" id="print_auth_workstation_id" class="input-block-level" data-bind="value: settings.plugins.print_auth_plugin.workstation_id()" placeholder="e.g., PrintStation01">
+                        <span class="help-block">Identifier for the workstation or printer, if needed by the auth system.</span>
+                    </div>
+                </div>
+
+            </fieldset>
+        </div>
+        <div class="span6">
+            <fieldset>
+                <legend>Information</legend>
+                <p>
+                    This plugin integrates with an external authentication server to authorize print jobs.
+                    Configure the necessary URLs and credentials to connect to your authentication provider.
+                </p>
+                <p>
+                    <strong>Login URL:</strong> The endpoint for user authentication.
+                </p>
+                <p>
+                    <strong>Username/Password:</strong> Credentials for the service/user that OctoPrint will use to interact with the auth system (if applicable).
+                </p>
+                <p>
+                    <strong>API URL:</strong> The base URL for any API calls the plugin needs to make to the authentication server (e.g., to verify permissions).
+                </p>
+                <p>
+                    <strong>Permission ID:</strong> If your authentication system uses specific permission identifiers for printing, enter it here.
+                </p>
+                <p>
+                    <strong>Workstation ID:</strong> If your authentication system needs to identify the printer/workstation, enter its ID here.
+                </p>
+            </fieldset>
+        </div>
+    </div>
+</div>
